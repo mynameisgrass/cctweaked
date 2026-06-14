@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Chat Bridge</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #252538;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #b4befe;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #a6adc8;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #45475a;
+            border-radius: 6px;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #b4befe;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: #b4befe;
+            color: #11111b;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        button:hover {
+            background-color: #cba6f7;
+        }
+        #status {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .success { color: #a6e3a1; }
+        .error { color: #f38ba8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Minecraft Bridge Dashboard</h2>
+    
+    <div class="form-group">
+        <label for="player">Player Name (Spoof Target)</label>
+        <input type="text" id="player" value="grassthedev" placeholder="e.g., grassthedev">
+    </div>
+    
+    <div class="form-group">
+        <label for="message">Message</label>
+        <input type="text" id="message" placeholder="Type what you want to say in game..." autocomplete="off">
+    </div>
+    
+    <button id="sendBtn" onclick="sendMessage()">Transmit to Server</button>
+    
+    <div id="status"></div>
+</div>
+
+<script>
+    // Automatically listen for the "Enter" key inside the message input box
+    document.getElementById("message").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
+
+    async function sendMessage() {
+        const playerInput = document.getElementById('player').value.trim();
+        const messageInput = document.getElementById('message').value.trim();
+        const statusDiv = document.getElementById('status');
+        const sendButton = document.getElementById('sendBtn');
+
+        if (!playerInput || !messageInput) {
+            statusDiv.className = 'error';
+            statusDiv.innerText = 'Both fields are required!';
+            return;
+        }
+
+        // Lock button while request processes
+        sendButton.disabled = true;
+        statusDiv.className = '';
+        statusDiv.innerText = 'Sending payload...';
+
+        try {
+            // Using a relative path so it hits your deployed Vercel API automatically
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    player: playerInput,
+                    message: messageInput
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                statusDiv.className = 'success';
+                statusDiv.innerText = '✓ Sent! Pushed to queue.';
+                document.getElementById('message').value = ''; // Clear text field for next message
+                document.getElementById('message').focus();    // Keep typing focus active
+            } else {
+                statusDiv.className = 'error';
+                statusDiv.innerText = 'Failed: ' + (result.error || 'Unknown API issue');
+            }
+        } catch (err) {
+            statusDiv.className = 'error';
+            statusDiv.innerText = 'Network Error: Check console log.';
+            console.error(err);
+        } finally {
+            sendButton.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
